@@ -25,11 +25,11 @@ function App() {
                     element: <Project />,
                 },
                 {
-                    path: "customers",
+                    path: "users",
                     element: <h1 className="title">Customers</h1>,
                 },
                 {
-                    path: "new-customer",
+                    path: "new-user",
                     element: <h1 className="title">New Customer</h1>,
                 },
                 {
@@ -37,8 +37,8 @@ function App() {
                     element: <h1 className="title">Verified Customers</h1>,
                 },
                 {
-                    path: "products",
-                    element: <h1 className="title">Products</h1>,
+                    path: "purchase-order",
+                    element: <h1 className="title">This is for purchase Order</h1>,
                 },
                 {
                     path: "new-product",

@@ -1,291 +1,811 @@
-import { useState } from "react";
-import { FaTrash, FaEye, FaFilePdf } from "react-icons/fa";
-import jsPDF from "jspdf";
-import "jspdf-autotable";
+import { Trash2, Eye, Plus, X, Upload } from "lucide-react";
+import  { useState } from "react";
 
 const Project = () => {
-  const [projects, setProjects] = useState([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [viewedProject, setViewedProject] = useState(null);
-  const [totalBudget, setTotalBudget] = useState(100000); // Example total budget
-  const [newProject, setNewProject] = useState({
+  const [showForm, setShowForm] = useState(false);
+  const [projects] = useState([
+    {
+      id: 1,
+      date: "2024-01-15",
+      name: "Website Redesign",
+      budget: 50000,
+      description: "Complete overhaul of company website with new branding",
+      subprojects: [
+        {
+          name: "UI Design",
+          budget: 15000,
+        },
+        {
+          name: "Frontend Development",
+          budget: 20000,
+        },
+        {
+          name: "Backend Integration",
+          budget: 15000,
+        },
+      ],
+    },
+    {
+      id: 2,
+      date: "2024-02-01",
+      name: "Mobile App Development",
+      budget: 75000,
+      description: "Native mobile app for iOS and Android platforms",
+      subprojects: [
+        {
+          name: "iOS Development",
+          budget: 35000,
+        },
+        {
+          name: "Android Development",
+          budget: 35000,
+        },
+        {
+          name: "QA Testing",
+          budget: 5000,
+        },
+      ],
+    },
+    {
+      id: 3,
+      date: "2024-03-10",
+      name: "Data Analytics Platform",
+      budget: 100000,
+      description: "Build custom analytics dashboard for business intelligence",
+      subprojects: [
+        {
+          name: "Data Architecture",
+          budget: 30000,
+        },
+        {
+          name: "Frontend Dashboard",
+          budget: 40000,
+        },
+        {
+          name: "API Development",
+          budget: 30000,
+        },
+      ],
+    },
+  ]);
+  const [formData, setFormData] = useState({
     name: "",
+    date: "",
     budget: "",
     description: "",
-    file: null,
+    files: [],
+    subprojects: [],
   });
-
-  // Remaining Budget Calculation
-  const allocatedBudget = projects.reduce(
-    (sum, project) => sum + parseFloat(project.budget || 0),
-    0
-  );
-  const remainingBudget = totalBudget - allocatedBudget;
-
-  // Input Handlers
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setNewProject({ ...newProject, [name]: value });
+  const [viewProject, setViewProject] = useState(null);
+  const [filters, setFilters] = useState({
+    name: "",
+    date: "",
+  });
+  const [sortConfig, setSortConfig] = useState({
+    key: null,
+    direction: "asc",
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+  const sortData = (data) => {
+    if (!sortConfig.key) return data;
+    return [...data].sort((a, b) => {
+      if (a[sortConfig.key] < b[sortConfig.key]) {
+        return sortConfig.direction === "asc" ? -1 : 1;
+      }
+      if (a[sortConfig.key] > b[sortConfig.key]) {
+        return sortConfig.direction === "asc" ? 1 : -1;
+      }
+      return 0;
+    });
   };
-
-  const handleFileUpload = (e) => {
-    setNewProject({ ...newProject, file: e.target.files[0] });
+  const filterData = (data) => {
+    return data.filter((project) => {
+      const nameMatch = project.name
+        .toLowerCase()
+        .includes(filters.name.toLowerCase());
+      const dateMatch = !filters.date || project.date.includes(filters.date);
+      return nameMatch && dateMatch;
+    });
   };
-
-  const handleAddProject = () => {
-    if (parseFloat(newProject.budget) > remainingBudget) {
-      alert("Budget exceeds remaining funds!");
-      return;
-    }
-
-    setProjects([...projects, newProject]);
-    setNewProject({
+  const paginateData = (data) => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return data.slice(startIndex, startIndex + itemsPerPage);
+  };
+  const generatePDF = (project) => {
+    const content = `
+      Project: ${project.name}
+      Date: ${project.date}
+      Budget: $${project.budget.toLocaleString()}
+      Description: ${project.description}
+      
+      Subprojects:
+      ${project.subprojects
+        .map(
+          (sub) => `
+        - ${sub.name}
+        Budget: $${sub.budget}
+        ${sub.description ? `Description: ${sub.description}` : ""}
+      `,
+        )
+        .join("\n")}
+    `;
+    const blob = new Blob([content], {
+      type: "text/plain",
+    });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${project.name}-report.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  };
+  const handleAddSubproject = () => {
+    setFormData({
+      ...formData,
+      subprojects: [
+        ...formData.subprojects,
+        {
+          name: "",
+          budget: "",
+          description: "",
+        },
+      ],
+    });
+  };
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setShowForm(false);
+    setFormData({
       name: "",
+      date: "",
       budget: "",
       description: "",
-      file: null,
+      files: [],
+      subprojects: [],
     });
-    setIsModalOpen(false);
   };
-
-  const handleDeleteProject = (index) => {
-    setProjects(projects.filter((_, i) => i !== index));
-  };
-
-  const handleViewProject = (project) => {
-    setViewedProject(project);
-    setIsViewModalOpen(true);
-  };
-
-  const handleGeneratePDF = (project) => {
-    const doc = new jsPDF();
-    doc.text(`Project Report: ${project.name}`, 14, 16);
-    doc.text(`Budget Allocated: $${project.budget}`, 14, 26);
-    doc.text("Description:", 14, 36);
-    doc.text(project.description, 14, 46);
-    doc.save(`${project.name}-report.pdf`);
-  };
-
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-800">Projects</h1>
-        <form className="form relative">
-        <button className="absolute left-2 -translate-y-1/2 top-1/2 p-1">
-            <svg width={17} height={16} fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="search" className="w-5 h-5 text-gray-700">
-            <path d="M7.667 12.667A5.333 5.333 0 107.667 2a5.333 5.333 0 000 10.667zM14.334 14l-2.9-2.9" stroke="currentColor" strokeWidth="1.333" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-        </button>
-        <input className="input rounded-full px-8 py-3 border-2 border-transparent dark:text-black focus:outline-none focus:border-blue-500 placeholder-gray-400 transition-all duration-300 shadow-md" placeholder="Search..." required type="text" />
-        <button type="reset" className="absolute right-3 -translate-y-1/2 top-1/2 p-1">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-        </button>
-        </form>
-
+    <main className="container mx-auto p-4 max-w-full">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Projects Overview</h1>
         <button
-          className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => setShowForm(true)}
+          className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
         >
+          <Plus size={20} />
           Create New Project
         </button>
       </div>
 
-      {/* Projects Table */}
-      <div className="mt-6">
-        <table className="w-full border-collapse border border-gray-300 bg-white rounded-lg shadow-md">
-          <thead className="bg-gray-200">
+      <div className="mb-4 grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Filter by Name
+          </label>
+          <input
+            type="text"
+            className="w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500"
+            value={filters.name}
+            onChange={(e) =>
+              setFilters({
+                ...filters,
+                name: e.target.value,
+              })
+            }
+            placeholder="Search by project name..."
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Filter by Date
+          </label>
+          <input
+            type="date"
+            className="w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500"
+            value={filters.date}
+            onChange={(e) =>
+              setFilters({
+                ...filters,
+                date: e.target.value,
+              })
+            }
+          />
+        </div>
+      </div>
+
+      <button
+        onClick={() => {
+          setFilters({
+            name: "",
+            date: "",
+          });
+          setSortConfig({
+            key: null,
+            direction: "asc",
+          });
+          setCurrentPage(1);
+        }}
+        className="mb-4 px-4 py-2 text-sm text-gray-600 border rounded hover:bg-gray-50"
+      >
+        Clear Filters
+      </button>
+
+      <div className="overflow-x-auto ">
+        <table className="min-w-full bg-white border border-gray-200 rounded-lg">
+          <thead className="bg-gray-50 ">
             <tr>
-              <th className="border border-gray-300 px-4 py-2 text-left">Project Name</th>
-              <th className="border border-gray-300 px-4 py-2 text-left">Budget Allocated</th>
-              <th className="border border-gray-300 px-4 py-2 text-left">Description</th>
-              <th className="border border-gray-300 px-4 py-2 text-center">Actions</th>
+              <th
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => {
+                  setSortConfig({
+                    key: "date",
+                    direction:
+                      sortConfig.key === "date" &&
+                      sortConfig.direction === "asc"
+                        ? "desc"
+                        : "asc",
+                  });
+                }}
+              >
+                Date{" "}
+                {sortConfig.key === "date" && (
+                  <span>{sortConfig.direction === "asc" ? "↑" : "↓"}</span>
+                )}
+              </th>
+              <th
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => {
+                  setSortConfig({
+                    key: "name",
+                    direction:
+                      sortConfig.key === "name" &&
+                      sortConfig.direction === "asc"
+                        ? "desc"
+                        : "asc",
+                  });
+                }}
+              >
+                Project Name{" "}
+                {sortConfig.key === "name" && (
+                  <span>{sortConfig.direction === "asc" ? "↑" : "↓"}</span>
+                )}
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Budget Allocated
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Description
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
             </tr>
           </thead>
-          <tbody>
-            {projects.length > 0 ? (
-              projects.map((project, index) => (
-                <tr key={index} className="hover:bg-gray-100">
-                  <td className="border border-gray-300 px-4 py-2">{project.name}</td>
-                  <td className="border border-gray-300 px-4 py-2">${project.budget}</td>
-                  <td className="border border-gray-300 px-4 py-2">{project.description}</td>
-                  <td className="border border-gray-300 px-4 py-2 text-center flex justify-center space-x-4">
-                    <FaEye
-                      className="text-blue-500 cursor-pointer"
-                      onClick={() => handleViewProject(project)}
-                    />
-                    <FaTrash
-                      className="text-red-500 cursor-pointer"
-                      onClick={() => handleDeleteProject(index)}
-                    />
+          <tbody className="divide-y divide-gray-200">
+            {(() => {
+              const filteredData = filterData(projects);
+              const sortedData = sortData(filteredData);
+              const paginatedData = paginateData(sortedData);
+              return paginatedData.map((project) => (
+                <tr key={project.id}>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {project.date}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {project.name}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    ${project.budget.toLocaleString()}
+                  </td>
+                  <td className="px-6 py-4">{project.description}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex gap-2">
+                      <button
+                        className="p-1 text-blue-500 hover:text-blue-700"
+                        onClick={() => setViewProject(project)}
+                      >
+                        <Eye size={20} />
+                      </button>
+                      <label className="p-1 text-green-500 hover:text-green-700 cursor-pointer">
+                        <input
+                          type="file"
+                          multiple
+                          className="hidden"
+                          onChange={(e) => {
+                            console.log("Files:", e.target.files);
+                          }}
+                        />
+                        <Upload size={20} />
+                      </label>
+                      <button className="p-1 text-red-500 hover:text-red-700">
+                        <Trash2 size={20} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td
-                  colSpan="4"
-                  className="border border-gray-300 px-4 py-2 text-center text-gray-500"
-                >
-                  No projects available.
-                </td>
-              </tr>
-            )}
+              ));
+            })()}
           </tbody>
         </table>
       </div>
 
-    {/* Modal for Creating New Project */}
-{isModalOpen && (
-  <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center z-50">
-    <div className="bg-white rounded-lg p-6 w-full max-w-lg shadow-xl">
-      <h2 className="text-2xl font-bold mb-4">New Project</h2>
-      <p className="text-gray-600 mb-4">
-        <strong>Total Budget:</strong> KES {totalBudget} | <strong>Remaining Budget:</strong> KES {remainingBudget}
-      </p>
-      <div className="space-y-4">
-
-        {/* Project Name */}
-        <div className="w-full font-mono">
-          <label 
-            className="block text-gray-700 text-sm font-bold mb-2" 
-            htmlFor="project-name"
+      <div className="mt-4 flex justify-between items-center">
+        <div className="text-sm text-gray-700">
+          Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
+          {Math.min(currentPage * itemsPerPage, filterData(projects).length)} of{" "}
+          {filterData(projects).length} results
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Project Name
-          </label>
-          <input
-            onChange={handleInputChange}
-            value={newProject.name}
-            name="name"
-            id="project-name"
-            className="text-sm w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm transition duration-300 ease-in-out focus:outline-blue-300 hover:shadow-lg hover:border-blue-300 bg-gray-100"
-            placeholder="Enter project name"
-            type="text"
-          />
-        </div>
-
-        {/* Budget */}
-        <div className="font-mono">
-          <label
-            htmlFor="currency-input"
-            className="block text-xl font-medium text-gray-700 mb-1"
-          >
-            Budget
-          </label>
-          <div className="flex h-[34px] text-[14px] text-white/60 w-full items-center bg-[#2f2f61] border border-white/10 rounded-lg focus-within:ring-2 focus-within:ring-gray-700 focus-within:ring-offset-2 focus-within:ring-offset-[#09090b] transition-all duration-150 ease-in-out">
-            <span className="ml-2">KES</span>
-            <input
-              required
-              name="budget"
-              value={newProject.budget}
-              onChange={handleInputChange}
-              className="bg-transparent text-[#f4f4f5] px-3 py-1 focus:outline-none w-full"
-              pattern="^[0-9,]*$"
-              id="currency-input"
-              type="number"
-              placeholder="0"
-            />
-            <span className="mr-2">KSH</span>
-          </div>
-        </div>
-
-        {/* Project Description */}
-        <div className="w-full font-mono">
-          <label
-            htmlFor="project-description"
-            className="block text-gray-700 text-sm font-bold mb-2"
-          >
-            Project Description
-          </label>
-          <textarea
-            onChange={handleInputChange}
-            value={newProject.description}
-            name="description"
-            id="project-description"
-            className="text-sm w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm transition duration-300 ease-in-out focus:outline-blue-300 hover:shadow-lg hover:border-blue-300 bg-gray-100"
-            placeholder="Enter project description"
-          />
-        </div>
-
-        {/* File Upload */}
-        <div className="max-w-md mx-auto rounded-lg overflow-hidden">
-          <div className="relative h-48 rounded-lg border-2 border-blue-500 bg-gray-50 flex justify-center items-center shadow-lg hover:shadow-xl transition-shadow duration-300 ease-in-out">
-            <div className="absolute flex flex-col items-center">
-              <img
-                alt="File Icon"
-                className="mb-3"
-                src="https://img.icons8.com/dusk/64/000000/file.png"
-              />
-              <span className="block text-gray-500 font-semibold">
-                Drag & drop your files here
-              </span>
-              <span className="block text-gray-400 font-normal mt-1">
-                or click to upload
-              </span>
-            </div>
-            <input
-              name="file"
-              className="h-full w-full opacity-0 cursor-pointer"
-              onChange={handleFileUpload}
-              type="file"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Buttons */}
-      <div className="mt-6 flex justify-end space-x-4">
-        <button
-          aria-label="Cancel"
-          className="px-4 py-2 rounded-2xl duration-300 bg-gray-300 hover:bg-red-500 hover:text-white hover:shadow-2xl transition-all"
-          onClick={() => setIsModalOpen(false)}
-        >
-          Cancel
-        </button>
-        <button
-          aria-label="Add Project"
-          className="px-4 py-2 rounded-2xl bg-blue-400 hover:bg-blue-500 text-white hover:shadow-2xl transition-all"
-          onClick={handleAddProject}
-        >
-          Add Project
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-
-      {/* Modal for Viewing Project */}
-      {isViewModalOpen && viewedProject && (
-        <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center">
-          <div className="bg-white rounded-lg p-6 w-full max-w-lg">
-            <h2 className="text-2xl font-bold mb-4">{viewedProject.name}</h2>
-            <p className="mb-2">
-              <strong>Budget Allocated:</strong> ${viewedProject.budget}
-            </p>
-            <p className="mb-4">
-              <strong>Description:</strong> {viewedProject.description}
-            </p>
-            <button
-              className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600"
-              onClick={() => handleGeneratePDF(viewedProject)}
-            >
-              Generate PDF
-            </button>
-            <div className="mt-6 flex justify-end">
+            Previous
+          </button>
+          {Array.from(
+            {
+              length: Math.ceil(filterData(projects).length / itemsPerPage),
+            },
+            (_, i) => (
               <button
-                className="px-4 py-2 rounded-2xl duration-300 bg-gray-300 hover:bg-red-500 hover:text-white hover:shadow-2xl transition-all"
-                onClick={() => setIsViewModalOpen(false)}
+                key={i + 1}
+                onClick={() => setCurrentPage(i + 1)}
+                className={`px-3 py-1 border rounded hover:bg-gray-100 ${currentPage === i + 1 ? "bg-blue-500 text-white" : ""}`}
               >
-                Close
+                {i + 1}
               </button>
+            ),
+          )}
+          <button
+            onClick={() =>
+              setCurrentPage((p) =>
+                Math.min(
+                  Math.ceil(filterData(projects).length / itemsPerPage),
+                  p + 1,
+                ),
+              )
+            }
+            disabled={
+              currentPage ===
+              Math.ceil(filterData(projects).length / itemsPerPage)
+            }
+            className="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+
+      {showForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Create New Project</h2>
+              <button
+                onClick={() => setShowForm(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit}>
+              <div className="grid gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Project Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    className="w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500"
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        name: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    className="w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500"
+                    value={formData.date}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        date: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Budget
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    className="w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500"
+                    value={formData.budget}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        budget: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    required
+                    className="w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500"
+                    rows={3}
+                    value={formData.description}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        description: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Project Files
+                  </label>
+                  <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed border-gray-300 rounded-lg">
+                    <div className="space-y-1 text-center">
+                      <svg
+                        className="mx-auto h-12 w-12 text-gray-400"
+                        stroke="currentColor"
+                        fill="none"
+                        viewBox="0 0 48 48"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                      <div className="flex text-sm text-gray-600">
+                        <label
+                          htmlFor="file-upload"
+                          className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500"
+                        >
+                          <span>Upload files</span>
+                          <input
+                            id="file-upload"
+                            name="file-upload"
+                            type="file"
+                            className="sr-only"
+                            multiple
+                            onChange={(e) => {
+                              const files = Array.from(e.target.files || []);
+                              setFormData({
+                                ...formData,
+                                files: [...formData.files, ...files],
+                              });
+                            }}
+                          />
+                        </label>
+                        <p className="pl-1">or drag and drop</p>
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        Any file up to 10MB
+                      </p>
+                      {formData.files.length > 0 && (
+                        <div className="mt-4">
+                          <h4 className="text-sm font-medium text-gray-700">
+                            Selected files:
+                          </h4>
+                          <ul className="mt-2 divide-y divide-gray-200">
+                            {formData.files.map((file, index) => (
+                              <li
+                                key={index}
+                                className="py-2 flex justify-between items-center"
+                              >
+                                <span className="text-sm text-gray-500">
+                                  {file.name}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newFiles = formData.files.filter(
+                                      (_, i) => i !== index,
+                                    );
+                                    setFormData({
+                                      ...formData,
+                                      files: newFiles,
+                                    });
+                                  }}
+                                  className="text-red-500 hover:text-red-700"
+                                >
+                                  <X size={16} />
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Subprojects
+                  </label>
+                  {formData.subprojects.length > 0 && (
+                    <div className="space-y-4 mb-4">
+                      {formData.subprojects.map((subproject, index) => (
+                        <div
+                          key={index}
+                          className="grid gap-2 p-4 border rounded-lg bg-gray-50"
+                        >
+                          <div className="grid grid-cols-2 gap-2">
+                            <input
+                              type="text"
+                              placeholder="Subproject Name"
+                              className="p-2 border rounded focus:ring-blue-500 focus:border-blue-500"
+                              value={subproject.name}
+                              onChange={(e) => {
+                                const newSubprojects = [
+                                  ...formData.subprojects,
+                                ];
+                                newSubprojects[index].name = e.target.value;
+                                setFormData({
+                                  ...formData,
+                                  subprojects: newSubprojects,
+                                });
+                              }}
+                            />
+                            <input
+                              type="number"
+                              placeholder="Budget"
+                              className="p-2 border rounded focus:ring-blue-500 focus:border-blue-500"
+                              value={subproject.budget}
+                              onChange={(e) => {
+                                const newSubprojects = [
+                                  ...formData.subprojects,
+                                ];
+                                newSubprojects[index].budget = e.target.value;
+                                setFormData({
+                                  ...formData,
+                                  subprojects: newSubprojects,
+                                });
+                              }}
+                            />
+                          </div>
+                          <textarea
+                            placeholder="Subproject Description"
+                            className="w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500"
+                            rows={2}
+                            value={subproject.description}
+                            onChange={(e) => {
+                              const newSubprojects = [...formData.subprojects];
+                              newSubprojects[index].description =
+                                e.target.value;
+                              setFormData({
+                                ...formData,
+                                subprojects: newSubprojects,
+                              });
+                            }}
+                          />
+                          <div className="mt-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Subproject Files
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <label className="flex-1 cursor-pointer bg-white px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                <span>Upload files</span>
+                                <input
+                                  type="file"
+                                  className="sr-only "
+                                  multiple
+                                  onChange={(e) => {
+                                    const files = Array.from(
+                                      e.target.files || [],
+                                    );
+                                    const newSubprojects = [
+                                      ...formData.subprojects,
+                                    ];
+                                    newSubprojects[index].files = [
+                                      ...(newSubprojects[index].files || []),
+                                      ...files,
+                                    ];
+                                    setFormData({
+                                      ...formData,
+                                      subprojects: newSubprojects,
+                                    });
+                                  }}
+                                />
+                              </label>
+                            </div>
+                            {subproject.files &&
+                              subproject.files.length > 0 && (
+                                <ul className="mt-2 divide-y divide-gray-200">
+                                  {subproject.files.map((file, fileIndex) => (
+                                    <li
+                                      key={fileIndex}
+                                      className="py-2 flex justify-between items-center"
+                                    >
+                                      <span className="text-sm text-gray-500">
+                                        {file.name}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const newSubprojects = [
+                                            ...formData.subprojects,
+                                          ];
+                                          newSubprojects[index].files =
+                                            newSubprojects[index].files.filter(
+                                              (_, i) => i !== fileIndex,
+                                            );
+                                          setFormData({
+                                            ...formData,
+                                            subprojects: newSubprojects,
+                                          });
+                                        }}
+                                        className="text-red-500 hover:text-red-700"
+                                      >
+                                        <X size={16} />
+                                      </button>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleAddSubproject}
+                    className={`flex items-center gap-2 ${formData.subprojects.length === 0 ? "w-full justify-center py-3 border-2 border-dashed border-blue-500 text-blue-500 rounded-lg hover:bg-blue-50" : "text-blue-500 hover:text-blue-700 text-sm"}`}
+                  >
+                    <Plus size={16} />
+                    {formData.subprojects.length === 0
+                      ? "Add Your First Subproject"
+                      : "Add Another Subproject"}
+                  </button>
+                </div>
+
+                <div className="flex justify-end gap-2 mt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowForm(false)}
+                    className="px-4 py-2 text-gray-700 border rounded hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                  >
+                    Create Project
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {viewProject && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Project Details</h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => generatePDF(viewProject)}
+                  className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                >
+                  Generate PDF
+                </button>
+                <button
+                  onClick={() => setViewProject(null)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-medium">Project Information</h3>
+                <div className="mt-2 grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-500">Name</p>
+                    <p className="font-medium">{viewProject.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Date</p>
+                    <p className="font-medium">{viewProject.date}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Budget</p>
+                    <p className="font-medium">
+                      ${viewProject.budget.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <p className="text-sm text-gray-500">Description</p>
+                  <p className="mt-1">{viewProject.description}</p>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-medium">Subprojects</h3>
+                <div className="mt-2 space-y-4">
+                  {viewProject.subprojects.map((subproject, index) => (
+                    <div key={index} className="border rounded-lg p-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-gray-500">Name</p>
+                          <p className="font-medium">{subproject.name}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Budget</p>
+                          <p className="font-medium">
+                            ${subproject.budget.toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                      {subproject.description && (
+                        <div className="mt-2">
+                          <p className="text-sm text-gray-500">Description</p>
+                          <p className="mt-1">{subproject.description}</p>
+                        </div>
+                      )}
+                      {subproject.files && subproject.files.length > 0 && (
+                        <div className="mt-2">
+                          <p className="text-sm text-gray-500">Files</p>
+                          <ul className="mt-1 space-y-1">
+                            {subproject.files.map((file, fileIndex) => (
+                              <li
+                                key={fileIndex}
+                                className="text-sm text-blue-500"
+                              >
+                                {file.name}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
       )}
-    </div>
+    </main>
   );
 };
 

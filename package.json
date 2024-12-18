@@ -1,7 +1,7 @@
 {
-  "name": "dashboard-ui-design",
+  "name": "studion1-1",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -38,5 +38,9 @@
     "prettier-plugin-tailwindcss": "^0.6.6",
     "tailwindcss": "^3.4.11",
     "vite": "^5.4.1"
-  }
+  },
+  "description": "Front-end-design",
+  "main": "eslint.config.js",
+  "author": "",
+  "license": "ISC"
 }

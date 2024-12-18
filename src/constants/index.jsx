@@ -30,12 +30,12 @@ export const navbarLinks = [
             {
                 label: "Users",
                 icon: Users,
-                path: "/customers",
+                path: "/users",
             },
             {
                 label: "Add New user",
                 icon: UserPlus,
-                path: "/new-customer",
+                path: "/new-user",
             },
         ],
     },
@@ -45,7 +45,7 @@ export const navbarLinks = [
             {
                 label: "Purchase order",
                 icon: Package,
-                path: "/products",
+                path: "/purchase-order",
             },
             {
                 label: "Expenses",

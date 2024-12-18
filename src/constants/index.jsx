@@ -43,7 +43,7 @@ export const navbarLinks = [
         title: "Finance",
         links: [
             {
-                label: "Purchase order",
+                label: "Purchase orders",
                 icon: Package,
                 path: "/purchase-order",
             },

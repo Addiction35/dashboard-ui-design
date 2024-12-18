@@ -5,6 +5,8 @@ import { ThemeProvider } from "@/contexts/theme-context";
 import Layout from "@/routes/layout";
 import DashboardPage from "@/routes/dashboard/page";
 import Project from "@/routes/project/page";
+import Analytics from "./routes/analytics/page";
+import PurchaseOrders from "./routes/purchase-order/page";
 
 function App() {
     const router = createBrowserRouter([
@@ -18,7 +20,7 @@ function App() {
                 },
                 {
                     path: "analytics",
-                    element: <h1 className="title">Analytics</h1>,
+                    element: <Analytics />,
                 },
                 {
                     path: "projects",
@@ -38,7 +40,7 @@ function App() {
                 },
                 {
                     path: "purchase-order",
-                    element: <h1 className="title">This is for purchase Order</h1>,
+                    element: <PurchaseOrders />,
                 },
                 {
                     path: "new-product",

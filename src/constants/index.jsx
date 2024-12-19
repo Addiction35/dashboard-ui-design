@@ -22,6 +22,11 @@ export const navbarLinks = [
                 icon: NotepadText,
                 path: "/projects",
             },
+            {
+                label: "items",
+                icon: NotepadText,
+                path: "/items",
+            },
         ],
     },
     {

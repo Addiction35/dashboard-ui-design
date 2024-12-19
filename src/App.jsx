@@ -27,6 +27,10 @@ function App() {
                     element: <Project />,
                 },
                 {
+                    path: "items",
+                    element: <h1>items page</h1>,
+                },
+                {
                     path: "users",
                     element: <h1 className="title">Customers</h1>,
                 },

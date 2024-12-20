@@ -1,11 +1,11 @@
-import { ChartColumn, Home, NotepadText, Package, PackagePlus, Settings, ShoppingBag, HandCoins, UserPlus, Users } from "lucide-react";
+import { ChartColumn, Home, NotepadText, Package, PackagePlus, Settings, ShoppingBasket, BriefcaseBusiness, HandCoins, UserPlus, Users } from "lucide-react";
 
 import ProfileImage from "@/assets/profile-image.jpg";
 import ProductImage from "@/assets/product-image.jpg";
 
 export const navbarLinks = [
     {
-        title: "Dashboard",
+        title: "OverView",
         links: [
             {
                 label: "Dashboard",
@@ -24,8 +24,13 @@ export const navbarLinks = [
             },
             {
                 label: "items",
-                icon: NotepadText,
+                icon: ShoppingBasket,
                 path: "/items",
+            },
+            {
+                label: "vendors",
+                icon: BriefcaseBusiness,
+                path: "/vendors",
             },
         ],
     },
@@ -36,11 +41,6 @@ export const navbarLinks = [
                 label: "Users",
                 icon: Users,
                 path: "/users",
-            },
-            {
-                label: "Add New user",
-                icon: UserPlus,
-                path: "/new-user",
             },
         ],
     },
@@ -55,12 +55,12 @@ export const navbarLinks = [
             {
                 label: "Expenses",
                 icon: PackagePlus,
-                path: "/new-product",
+                path: "/expenses",
             },
             {
                 label: "Wages",
                 icon: HandCoins,
-                path: "/inventory",
+                path: "/wages",
             },
         ],
     },

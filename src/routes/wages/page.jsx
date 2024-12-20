@@ -3,17 +3,17 @@ import { FaPlus, FaEllipsisV, FaTimes } from 'react-icons/fa';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 
-const PurchaseOrders = () => {
+const Wages = () => {
   const [showModal, setShowModal] = useState(false);
   const [showPdfOverlay, setShowPdfOverlay] = useState(false);
   const [selectedDelivery, setSelectedDelivery] = useState('warehouse');
   const [selectedItems, setSelectedItems] = useState([]);
 
-  const purchaseOrders = [
+  const wages = [
     {
       date: '2024-12-19',
       project: 'Project Alpha',
-      purchaseOrder: 'PO12345',
+      wage: 'WG-12345',
       reference: 'Ref123',
       amount: '$1,200',
       vendorName: 'Vendor A',
@@ -46,7 +46,7 @@ const PurchaseOrders = () => {
       heightLeft -= pageHeight;
     }
   
-    pdf.save('purchase_order.pdf');
+    pdf.save('expenses.pdf');
   };
 
   const handleAddItem = () => {
@@ -67,7 +67,7 @@ const PurchaseOrders = () => {
   return (
     <div className="p-2 lg:p-4">
       <div className="flex flex-col md:flex-row justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Purchase Orders</h1>
+        <h1 className="text-2xl font-bold">Wages</h1>
         <div className="flex items-center gap-2 mt-2 md:mt-0">
           <button
             className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
@@ -84,7 +84,7 @@ const PurchaseOrders = () => {
             <tr>
               <th className="px-4 py-2 border">Date</th>
               <th className="px-4 py-2 border">Project</th>
-              <th className="px-4 py-2 border">Purchase Order</th>
+              <th className="px-4 py-2 border">Wages</th>
               <th className="px-4 py-2 border">Reference</th>
               <th className="px-4 py-2 border">Amount</th>
               <th className="px-4 py-2 border">Vendor Name</th>
@@ -94,11 +94,11 @@ const PurchaseOrders = () => {
             </tr>
           </thead>
           <tbody>
-            {purchaseOrders.map((order, index) => (
+            {wages.map((order, index) => (
               <tr key={index} onClick={() => setShowPdfOverlay(true)} className="cursor-pointer hover:bg-gray-100">
                 <td className="px-4 py-2 border">{order.date}</td>
                 <td className="px-4 py-2 border">{order.project}</td>
-                <td className="px-4 py-2 border">{order.purchaseOrder}</td>
+                <td className="px-4 py-2 border">{order.wage}</td>
                 <td className="px-4 py-2 border">{order.reference}</td>
                 <td className="px-4 py-2 border">{order.amount}</td>
                 <td className="px-4 py-2 border">{order.vendorName}</td>
@@ -114,7 +114,7 @@ const PurchaseOrders = () => {
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white w-11/12 md:w-3/4 lg:w-1/2 p-6 rounded-lg">
-            <h2 className="text-xl font-bold mb-4">Add New Purchase Order</h2>
+            <h2 className="text-xl font-bold mb-4">Add New Wage</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block mb-1">Select Vendor</label>
@@ -163,7 +163,7 @@ const PurchaseOrders = () => {
               )}
 
               <div>
-                <label className="block mb-1">Purchase Order Number</label>
+                <label className="block mb-1">Wages</label>
                 <input type="text" className="w-full border rounded p-2" />
               </div>
               <div>
@@ -281,7 +281,7 @@ const PurchaseOrders = () => {
       >
         <FaTimes size={20} />
       </button>
-      <h2 className="text-xl font-bold mb-4">Purchase Order Details</h2>
+      <h2 className="text-xl font-bold mb-4">Wage Details</h2>
       <div id="pdf-content" className="overflow-x-auto">
         <table className="min-w-full bg-white border rounded-lg overflow-hidden">
           <thead className="bg-gray-100">
@@ -321,4 +321,4 @@ const PurchaseOrders = () => {
   );
 };
 
-export default PurchaseOrders;
+export default Wages;

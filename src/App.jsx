@@ -7,6 +7,11 @@ import DashboardPage from "@/routes/dashboard/page";
 import Project from "@/routes/project/page";
 import Analytics from "./routes/analytics/page";
 import PurchaseOrders from "./routes/purchase-order/page";
+import Expenses from "./routes/expenses/page";
+import Wages from "./routes/wages/page";
+import SettingsPage from "./routes/settings/page";
+import Users from "./routes/users/page";
+import VendorList from "./routes/vendors/page";
 
 function App() {
     const router = createBrowserRouter([
@@ -32,31 +37,31 @@ function App() {
                 },
                 {
                     path: "users",
-                    element: <h1 className="title">Customers</h1>,
+                    element: <Users />,
                 },
                 {
                     path: "new-user",
                     element: <h1 className="title">New Customer</h1>,
                 },
                 {
-                    path: "verified-customers",
-                    element: <h1 className="title">Verified Customers</h1>,
+                    path: "vendors",
+                    element: <VendorList />,
                 },
                 {
                     path: "purchase-order",
                     element: <PurchaseOrders />,
                 },
                 {
-                    path: "new-product",
-                    element: <h1 className="title">New Product</h1>,
+                    path: "expenses",
+                    element: <Expenses />,
                 },
                 {
-                    path: "inventory",
-                    element: <h1 className="title">Inventory</h1>,
+                    path: "wages",
+                    element: <Wages />,
                 },
                 {
                     path: "settings",
-                    element: <h1 className="title">Settings</h1>,
+                    element: <SettingsPage />,
                 },
             ],
         },
